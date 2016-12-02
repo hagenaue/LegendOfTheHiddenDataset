@@ -1,4 +1,5 @@
 #Turning our automated code into an R package
+#https://hilaryparker.com/2014/04/29/writing-an-r-package-from-scratch/
 
 library(devtools)
 library(roxygen2)
@@ -11,19 +12,35 @@ setwd("parent_directory")
 create("BrainInABlender")
 
 setwd("./BrainInABlender")
+
+#Edit the description file - in Rstudio -do not edit as a text document!  - follow BrainInABlender format
+
+#Throw some code into the "R" folder
+#Add metadata to the top of the code so that it can be used to create the documentation.
+#E.g. parameters, dependencies, example usage - see BrainInABlender example
+#http://r-pkgs.had.co.nz/description.html
+
+#The document command pulls the meta data from the top of the code files and creates the .man folder, which allows users to know how the function works when they type "help", among other things
+#https://github.com/klutometis/roxygen#roxygen2
 document()
 
+#This creates the data directory within the package:
 dir.create("data")
 setwd("data")
 
+#And this is how to output data from the workspace into the data directory:
 devtools::use_data(CellTypeSpecificGenes_Master3, internal=F, compress="gzip")
 devtools::use_data(PracticeUserInput, internal=F, compress="gzip")
 
+#I don't remember what this is:
 #save(CellTypeSpecificGenes_Master3, file="CellTypeSpecificGenes_Master3.RData")
+
+#The data files also require metadata - see examples in BrainInABlender
+#And following adding the metadata, run the document() function again to create the documentation:
+document()
 
 
 #Testing:
-
 
 #This is when I want to try and install it:
 setwd("..")
