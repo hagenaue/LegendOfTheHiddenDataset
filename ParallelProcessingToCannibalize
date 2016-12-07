@@ -1,0 +1,469 @@
+#Ok, let's try running this with parallell processing instead:
+
+
+
+source("https://bioconductor.org/biocLite.R")
+
+biocLite("BiocParallel")
+
+library(BiocParallel)
+library(parallel)
+library(doMC)
+
+detectCores()
+#8
+
+ registered()
+
+# $MulticoreParam
+# class: MulticoreParam 
+  # bpjobname:BPJOB; bpworkers:6; bptasks:0; bptimeout:Inf; bpRNGseed:; bpisup:FALSE
+  # bplog:FALSE; bpthreshold:INFO; bplogdir:NA
+  # bpstopOnError:FALSE; bpprogressbar:FALSE
+  # bpresultdir:NA
+# cluster type: FORK 
+
+# $SnowParam
+# class: SnowParam 
+  # bpjobname:BPJOB; bpworkers:6; bptasks:0; bptimeout:Inf; bpRNGseed:; bpisup:FALSE
+  # bplog:FALSE; bpthreshold:INFO; bplogdir:NA
+  # bpstopOnError:FALSE; bpprogressbar:FALSE
+  # bpresultdir:NA
+# cluster type: SOCK 
+
+# $SerialParam
+# class: SerialParam 
+  # bplog:FALSE; bpthreshold:INFO
+  # bpcatchErrors:FALSE
+
+bpparam()
+
+#How to track memory usage:
+sum(gc(reset=TRUE)[,6])
+# [1] 433.3
+
+#Example function:
+apply(GeneByCellTypeSubjVar2_PvaluesAdj, 2, function(y) y=sum(y<0.10))
+
+sum(gc()[,6])
+# [1] 441.5
+
+
+#How to track time usage:
+system.time(apply(GeneByCellTypeSubjVar2_PvaluesAdj, 2, function(y) y=sum(y<0.10)))
+   # user  system elapsed 
+  # 0.005   0.000   0.005
+
+
+register(MulticoreParam())
+
+bplapply(names(V(G)), function(node)
+
+
+#Another version:
+library(foreach)
+
+#This is the serial version:
+
+foreach(n=1:1000, .combine=rbind) %do% mean(rnorm(1000, mean=2, sd=1))
+
+system.time(foreach(n=1:1000, .combine=rbind) %do% mean(rnorm(1000, mean=2, sd=1)))
+   # user  system elapsed 
+  # 0.691   0.010   0.724 
+
+#This is the parallel version:
+
+
+library(doMC)
+
+#I'm going to set the # of cores to 3/4 of what is available
+registerDoMC(cores=2)
+
+system.time(foreach(n=1:1000, .combine=rbind) %dopar% mean(rnorm(1000, mean=2, sd=1))/sqrt(sd(rnorm(1000, mean=0.5, sd=0.5))))
+
+#7 cores:
+   user  system elapsed 
+  0.640   1.537   1.551 
+  
+#2 cores:
+   user  system elapsed 
+  0.695   0.801   0.900
+
+#interesting- just messing around with it suggests that the number of cores isn't directly related to processing time. Perhaps because the process is not intensive enough to outweight communication time?  Let me try and up the processing to something more intensive...
+
+system.time(foreach(n=1:1000, .combine=rbind) %dopar% mean(rnorm(1000, mean=2, sd=1))/sqrt(sd(rnorm(1000, mean=0.5, sd=0.5))))
+
+system.time(
+	temp<-summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+)
+
+   user  system elapsed 
+  0.024   0.003   0.041 
+  
+ #put it in a loop:
+  
+  system.time(
+  
+ for(j in 1:10000){ 
+	temp<-summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+	}
+)
+
+#w/100 iterations:  
+   user  system elapsed 
+  0.430   0.013   0.462 
+  
+w/1000 iterations:
+   user  system elapsed 
+  3.852   0.031   3.855 
+  
+w/10000 iterations:
+   user  system elapsed 
+ 40.436   0.299  40.201 
+ 
+  
+LM_wInteractions<-function(i){
+ temp<<-summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+}
+
+
+registerDoMC(cores=2)
+
+system.time( 
+ foreach(i=1:100) %dopar% LM_wInteractions(i)	
+)
+
+   # user  system elapsed 
+  # 0.466   0.550   0.659 
+ 
+ registerDoMC(cores=7)
+
+  system.time( 
+ foreach(i=1:100) %dopar% LM_wInteractions(i)	
+)
+  
+   # user  system elapsed 
+  # 0.703   1.758   1.201
+
+#huh-guess that wasn't complicated enough for parallel processing to help. Perhaps if there were more interations?  
+ 
+ registerDoMC(cores=2)
+
+system.time( 
+ foreach(i=1:1000) %dopar% LM_wInteractions(i)	
+)
+
+   # user  system elapsed 
+  # 2.523   0.676   2.884 
+ 
+  registerDoMC(cores=7)
+
+system.time( 
+ foreach(i=1:1000) %dopar% LM_wInteractions(i)	
+)
+     user  system elapsed 
+  7.403   2.914   2.242 
+
+
+#Ok, by the time I'm doing 1000 iterations, parallel processing is faster but not by much.
+#Let's try 10,000 and see what happens:
+
+ 
+  registerDoMC(cores=2)
+
+system.time( 
+ foreach(i=1:10000) %dopar% LM_wInteractions(i)	
+)
+
+     # user  system elapsed 
+ # 29.622   1.824  29.989 
+ 
+  registerDoMC(cores=7)
+
+system.time( 
+ foreach(i=1:10000) %dopar% LM_wInteractions(i)	
+)
+
+    # user  system elapsed 
+ # 52.858   4.436  14.011 
+  
+
+#Alright, by the time we are up to 10,000 iterations, parallel processing with more cores is definitely helping. Hurray!
+
+
+#Now let's try to apply the darn thing.
+
+#Functions needed:
+
+LM_wInteractions<-function(i){
+ #temp<<-
+ summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+}
+
+ExtractBetas<-function(j){j$coefficients[,1]}
+ExtractPvalues<-function(j){j$coefficients[,4]}
+
+#test run:
+temp<-foreach(i=1:10) %dopar% LM_wInteractions(i)
+
+lapply(temp, function(y) ExtractBetas(y))
+simplify2array(lapply(temp, function(y) ExtractBetas(y)))
+
+bplapply(temp,function(y) ExtractBetas(y))	
+simplify2array(bplapply(temp,function(y) ExtractBetas(y)))
+
+
+system.time(
+temp<-foreach(i=1:10000) %do% LM_wInteractions(i)
+)
+ 
+system.time(
+simplify2array(lapply(temp, function(y) ExtractBetas(y)))
+)
+
+#For 10 iterations:
+   # user  system elapsed 
+  # 0.057   0.002   0.081
+     # user  system elapsed 
+  # 0.017   0.003   0.042 
+  
+#For 1000 iterations:
+   # user  system elapsed 
+  # 3.931   0.093   3.992 
+     # user  system elapsed 
+  # 0.019   0.001   0.036 
+  
+  #For 10000 iterations:
+     # user  system elapsed 
+ # 43.943   0.328  43.701
+ 
+    # user  system elapsed 
+  # 0.123   0.004   0.134
+
+simplify2array(lapply(temp, function(y) ExtractPvalues(y)))
+
+
+registerDoMC(cores=7)
+
+system.time(
+temp<-foreach(i=1:10000) %dopar% LM_wInteractions(i)
+)
+
+system.time(
+simplify2array(bplapply(temp,function(y) ExtractBetas(y)))
+)
+
+
+simplify2array(bplapply(temp,function(y) ExtractPvalues(y)))
+
+#For 10 iterations:
+  # user  system elapsed 
+  # 2.946   3.529   1.063
+   
+   # user  system elapsed 
+  # 0.083   0.870   2.335 
+
+#For 1000 iterations:
+   # user  system elapsed 
+  # 5.005   3.665   2.284 
+   # user  system elapsed 
+  # 0.656   1.132   3.639 
+  
+#For 10,0000 iterations:
+   user  system elapsed 
+ 23.215   3.663  15.507
+    user  system elapsed 
+  8.579   3.142  15.627
+  
+  #Alright, so foreach is useful for a large linear model when applied to a big matrix, bplapply is not useful for a function this simple.
+  #In general, however, lapply is likely to be faster than a for loop.
+
+
+LM_wInteractions<-function(i){
+ #temp<<-
+ summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+}
+
+ExtractBetas<-function(j){j$coefficients[,1]}
+ExtractPvalues<-function(j){j$coefficients[,4]}
+
+RunFakeLMExtractPval<-function(columnNumbers){
+FakeDiagnosis<-sample(x=DiagnosisNoNA3, size=length(AgonalFactorNoNA3), replace=T)
+LM_wInteractions<-function(i){
+ #temp<<-
+ summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+}
+temp<-foreach(i=1:nrow(SignalSortedNoNA3)) %dopar% LM_wInteractions(i)
+temp2<-t(simplify2array(lapply(temp,function(y) ExtractPvalues(y))))
+temp2[,columnNumbers]
+}
+
+
+FDR<-array(0, c(length(seq(from=0.0000001, to=0.00005, by=0.0000001)), length(c(10:12, 19:27)), 1000))
+object.size(FDR)
+# 48,000,208 bytes. Dang....
+
+FDR<-array(as.integer(0), c(length(seq(from=0.0000001, to=0.00005, by=0.0000001)), length(c(10:12, 19:27)), 1000))
+object.size(FDR)
+# 24,000,208 bytes. Better, but still big. :(
+
+row.names(FDR)<-as.character(seq(0.0000001, to=0.00005, by=0.0000001))
+colnames(FDR)<-c("BP", "MDD", "SCHIZ", "BP*Astrocyte", "MDD*Astrocyte", "SCHIZ*Astrocyte", "BP*Neuron_All", "MDD*Neuron_All", "SCHIZ*Neuron_All", "BP*Oligodendrocyte","MDD*Oligodendrocyte", "SCHIZ*Oligodendrocyte")
+
+system.time(
+for(i in 1:8){	
+
+GeneByCellTypeSubjVar2_Pvalues<-RunFakeLMExtractPval(c(10:12, 19:27))
+
+#System Time per iteration for extracting pvalues
+   # user  system elapsed 
+ # 86.704  12.148  16.895 
+
+for(k in c(1:length(seq(from=0.0000001, to=0.00005, by=0.0000001)))){
+FDR[k,,i]<-apply(GeneByCellTypeSubjVar2_Pvalues, 2, function(y) as.integer(sum(y<as.numeric(row.names(FDR))[k])))
+print(k)
+}
+
+#System time:
+   # user  system elapsed 
+ # 13.053   3.921  17.181
+
+}
+)
+#system time for the full loop:
+   # user  system elapsed 
+ # 99.643  17.542  35.908 
+ 
+ #For 8 iterations of the loop:
+    # user  system elapsed 
+# 709.722 126.894 281.498
+
+AverageFDR<-apply(FDR, c(1,2), mean)
+MedianFDR<-apply(FDR, c(1,2), median)
+MoreThan0FDR<-apply(FDR, c(1,2), function(y) sum(y>0))
+
+
+
+system.time(
+FDR2<-foreach(i=1:1000) %dopar% CalculateFDRforLMRun()
+)
+
+#For 8 iterations of the loop:   
+   user  system elapsed 
+925.730  74.923 172.192 
+
+
+CalculateFDRforLMRun<-function(){
+GeneByCellTypeSubjVar2_Pvalues<-RunFakeLMExtractPval(c(10:12, 19:27))
+
+#System Time per iteration for extracting pvalues
+   # user  system elapsed 
+ # 86.704  12.148  16.895 
+
+for(k in c(1:length(seq(from=0.0000001, to=0.00005, by=0.0000001)))){
+FDR[k,,i]<<-apply(GeneByCellTypeSubjVar2_Pvalues, 2, function(y) sum(y<as.numeric(row.names(FDR))[k]))
+}
+return(FDR[,,i])
+#System time:
+   # user  system elapsed 
+ # 13.053   3.921  17.181
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# GeneByCellTypeSubjVar2_Pvalues<-t(simplify2array(lapply(temp,function(y) ExtractPvalues(y))))
+
+# GeneByCellTypeSubjVar2_Betas<-t(simplify2array(lapply(temp,function(y) ExtractBetas(y))))
+
+# colnames(GeneByCellTypeSubjVar2_Betas)<-c("Intercept", "Astrocyte", "Neuron_All", "Oligodendrocyte", "BrainPH", "AgonalFactor", "PMI", "Age", "Gender", "BP", "MDD", "SCHIZ", "BrainPH*Astrocyte", "BrainPH*Neuron_All", "BrainPH*Oligodendrocyte", "Age*Astrocyte", "Age*Neuron_All", "Age*Oligodendrocyte", "BP*Astrocyte", "MDD*Astrocyte", "SCHIZ*Astrocyte", "BP*Neuron_All", "MDD*Neuron_All", "SCHIZ*Neuron_All", "BP*Oligodendrocyte","MDD*Oligodendrocyte", "SCHIZ*Oligodendrocyte")
+
+
+
+
+for(j in 1:100){
+	
+#Newer version:
+FakeDiagnosis<-sample(x=DiagnosisNoNA3, size=length(AgonalFactorNoNA3), replace=T)
+	
+#Let's just recycle this code:
+
+GeneByCellTypeSubjVar2_Pvalues<-matrix(0, length(SignalSortedNoNA3[,1]), 27)
+GeneByCellTypeSubjVar2_Betas<-matrix(0, length(SignalSortedNoNA3[,1]), 27)
+colnames(GeneByCellTypeSubjVar2_Pvalues)<-c("Intercept", "Astrocyte", "Neuron_All", "Oligodendrocyte", "BrainPH", "AgonalFactor", "PMI", "Age", "Gender", "BP", "MDD", "SCHIZ", "BrainPH*Astrocyte", "BrainPH*Neuron_All", "BrainPH*Oligodendrocyte", "Age*Astrocyte", "Age*Neuron_All", "Age*Oligodendrocyte",  "BP*Astrocyte", "MDD*Astrocyte", "SCHIZ*Astrocyte", "BP*Neuron_All", "MDD*Neuron_All", "SCHIZ*Neuron_All", "BP*Oligodendrocyte","MDD*Oligodendrocyte", "SCHIZ*Oligodendrocyte")
+colnames(GeneByCellTypeSubjVar2_Betas)<-c("Intercept", "Astrocyte", "Neuron_All", "Oligodendrocyte", "BrainPH", "AgonalFactor", "PMI", "Age", "Gender", "BP", "MDD", "SCHIZ", "BrainPH*Astrocyte", "BrainPH*Neuron_All", "BrainPH*Oligodendrocyte", "Age*Astrocyte", "Age*Neuron_All", "Age*Oligodendrocyte", "BP*Astrocyte", "MDD*Astrocyte", "SCHIZ*Astrocyte", "BP*Neuron_All", "MDD*Neuron_All", "SCHIZ*Neuron_All", "BP*Oligodendrocyte","MDD*Oligodendrocyte", "SCHIZ*Oligodendrocyte")
+row.names(GeneByCellTypeSubjVar2_Pvalues)<-row.names(SignalSortedNoNA3)
+row.names(GeneByCellTypeSubjVar2_Betas)<-row.names(SignalSortedNoNA3)
+head(GeneByCellTypeSubjVar2_Pvalues)
+
+
+for(i in c(1:length(SignalSortedNoNA3[,1]))){
+	
+	temp<-summary.lm(lm(SignalSortedNoNA3[i,]~CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+BrainPHCentered +AgonalFactorNoNA3 + PMICentered+ AgeCentered+ GenderNoNA3 + FakeDiagnosis +BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+BrainPHCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+AgeCentered*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Astrocyte+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Neuron_All+FakeDiagnosis*CellTypeIndices_NoNA3_NormBestNoPrimaryOverlap$Oligodendrocyte))
+
+GeneByCellTypeSubjVar2_Betas[i,]<-temp$coefficients[,1]
+GeneByCellTypeSubjVar2_Pvalues[i,]<-temp$coefficients[,4]
+
+}
+
+
+#Version of the code for the full interaction term model:
+# FDR<-array(0, c(length(seq(from=0.0000001, to=0.00005, by=0.0000001)), length(temp[1,c(40:42, 49:57)]), 100))
+# row.names(FDR)<-as.character(seq(0.0000001, to=0.00005, by=0.0000001))
+# colnames(FDR)<-colnames(temp[1,c(40:42, 49:57)])
+
+#Only the p-value columns for diagnosis contain information. 31-33
+#Do not include all columns - it seems like the first couple of columns being factors totally screws up the apply function.
+FDR<-array(0, c(length(seq(from=0.0000001, to=0.00005, by=0.0000001)), length(temp[1, c(31:33)]), 100))
+row.names(FDR)<-as.character(seq(0.0000001, to=0.00005, by=0.0000001))
+colnames(FDR)<-colnames(temp[1, c(31:33)])
+
+
+for(i in 1:length(FileNames)){	
+temp<-read.csv(FileNames[i], header=T)
+
+for(k in c(1:length(seq(from=0.0000001, to=0.00005, by=0.0000001)))){
+
+FDR[k,,i]<-apply(temp[,c(31:33)], 2, function(y) sum(y<as.numeric(row.names(FDR))[k]))
+print(k)
+#Version of code for full interaction term model:		
+# FDR[k,,i]<-apply(temp[,c(40:42, 49:57)], 2, function(y) sum(y<as.numeric(row.names(FDR))[k]))
+
+}
+}
+
+
+
+AverageFDR<-apply(FDR, c(1,2), mean)
+MedianFDR<-apply(FDR, c(1,2), median)
+MoreThan0FDR<-apply(FDR, c(1,2), function(y) sum(y>0))
+
+write.csv(AverageFDR, "AverageFDR.csv")
+write.csv(MedianFDR, "MedianFDR.csv")
+write.csv(MoreThan0FDR, "MoreThan0FDR.csv")
+
+
+
