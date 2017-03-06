@@ -24,10 +24,15 @@ AffyDataSetModel <- read.csv("AffyDataSetModel.csv", header = T)
 
 setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput")
 #testgeneList<-as.data.frame(read.csv("TestInput_18_NomP00001.csv", header=T, stringsAsFactors = F))
-#testgeneList<-as.data.frame(read.csv("TestInput_137_NomP0005.csv", header=T, stringsAsFactors = F))
+testgeneList<-as.data.frame(read.csv("TestInput_137_NomP0005.csv", header=T, stringsAsFactors = F))
 #testgeneList<-as.data.frame(read.csv("TestInput_714_NomP01.csv", header=T, stringsAsFactors = F))
 #testgeneList<-as.data.frame(read.csv("TestInput_1900_nomP05.csv", header=T, stringsAsFactors = F))
-testgeneList<-as.data.frame(read.csv("TestInput_21800.csv", header=T, stringsAsFactors = F))
+#testgeneList<-as.data.frame(read.csv("TestInput_21800.csv", header=T, stringsAsFactors = F))
+
+# setwd("~/Documents/R Code/MakingAMetaQueryDatabase/AllDatasetsReformatted")
+# temp<-read.csv("HC_Affymetrix_Affy6Region_ModelLM4.csv", header=T, stringsAsFactors = F)
+# testgeneList<-as.data.frame(temp$SYMBOLREANNOTATED)
+
 testgeneList<-testgeneList[,1]
 #colnames(testgeneList)[1]<-"[,1]"
 str(testgeneList)
@@ -38,15 +43,16 @@ testgeneList <- c("AAAS", "AACS", "A2M", "A4GNT", "AAMP", "AADAC", "AAK1", "ABAT
  "ABCA3", "ABCA4", "ABCA5" ,"ABCA6", "ABCA7", "ABCA8", "ABCB1", "ABCB11" ,"ABCB4", "ABCB6", "ABCB7", "ABCB8","EXOSC7", "TES", "TMEM144", "SCUBE2", "UCP2")
 
 
-testdatasets <- t(data.frame("Pritzker960", "Freeze3", "LCM.AMY", "Affy6Region"))
+testdatasets <- t(data.frame("Pritzker960", "Freeze3", "LCM.AMY", "Affy6Region", "LCM.HC"))
 #testBrainRegion <- t(data.frame("HC","DLPFC","NACC","AMY","ACG","CB"))
 testBrainRegion <- c("AAA","AB","ACG","AHA","AMY","ANTHAL","Basal","CB","Central","CO","DLPFC","HC","Lateral","Medial","MTHAL","NACC","PAC","PCG","PL","SCG")
 
+testBrainRegion <- c("HC")
 
+testvariablesInterest <- t(data.frame ("MDD", "BP", "SCHIZ", "Age", "BrainPH")) 
+#testtypeOfOutput <- t(data.frame("PercentileRank", "Tstat", "NominalPvalue")) #all values must be in one column
 
-testvariablesInterest <- t(data.frame ("MDD")) 
-testtypeOfOutput <- t(data.frame("PercentileRank", "Tstat", "NominalPvalue")) #all values must be in one column
-
+testtypeOfOutput <- t(data.frame("Tstat")) #all values must be in one column
 
 setwd("~/Documents/R Code/MakingAMetaQueryDatabase/AllDatasetsReformatted")
 #setwd("~/Documents/R Code/MakingAMetaQueryDatabase/AleksPracticeDatasets/recodeinputgenes")
@@ -65,9 +71,9 @@ TestOutputJoined<-test[[3]]
 #setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput_137_NomP0005")
 #setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput_714_NomP01")
 #setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput_1900_nomP05")
-setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput_21800")
+#setwd("~/Documents/R Code/MakingAMetaQueryDatabase/TestOutput/TestInput_21800")
 
-
+setwd("~/Documents/R Code/MakingAMetaQueryDatabase/ComparingDatasets")
 write.csv(TestOutputAffy, "TestOutputAffy.csv")
 write.csv(TestOutputIllumina, "TestOutputIllumina.csv")
 write.csv(TestOutputJoined, "TestOutputJoined.csv")
