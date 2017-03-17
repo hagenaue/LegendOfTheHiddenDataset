@@ -2,7 +2,7 @@
 #Parent function, creates a list of three datasets in the order: illumina, affy, illumina+Affy by genesymbol.
 AffyAndIllumina <- function(ILMNDataModel, AFFYDataModel, genesOfInterest, DataSets, AffyDataSets, BrainRegion, variablesofInterest, OutputsInterest){
     
-    ILMN <- HiddenDataSet(DataSetModel = ILMNDataModel, geneList = genesOfInterest, datasets = DataSets, brainRegion = BrainRegion, variablesInterest = variablesofInterest, typeOfOutput = OutputsInterest)
+    ILMN <- HiddenIllumina(DataSetModel = ILMNDataModel, geneList = genesOfInterest, datasets = DataSets, brainRegion = BrainRegion, variablesInterest = variablesofInterest, typeOfOutput = OutputsInterest)
     AFFY <- HiddenAffy(AffyDataModel = AFFYDataModel, geneList = genesOfInterest, datasets = DataSets, brainRegion = BrainRegion, variablesInterest = variablesofInterest, typeOfOutput = OutputsInterest)
     
     JoinedAffyIlmn <- join(AFFY, ILMN, by = "SYMBOLREANNOTATED", type = "full")
@@ -10,7 +10,122 @@ AffyAndIllumina <- function(ILMNDataModel, AFFYDataModel, genesOfInterest, DataS
     output <- list(ILMN, AFFY, JoinedAffyIlmn)
     return (output)
 }
+#run to add the function to your library
+HiddenIllumina <- function(DataSetModel, geneList, datasets, brainRegion, variablesInterest, typeOfOutput){
+    #iterates throught the dataset column of ILMNDataModel
+    #pulls out all data related to genes of interest, type of dataset, and brain region
+    for (i in 1:length(DataSetModel[,4])){
+        if ((DataSetModel[i,4] %in% datasets) & (DataSetModel[i,3] == "Illumina") & (DataSetModel[i,2] %in% brainRegion)){ # taking out for now (DataSetModel[i,4]=="Pritzker960") &
+            file <- read.csv(file = toString(DataSetModel[i,1]), stringsAsFactors = FALSE)
+            iterationDataSet<-file[as.character(file[,grep("SYMBOLREANNOTATED", colnames(file), ignore.case = TRUE, perl = T,value = F)]) %in% geneList,]
+            
+            if(!exists("DataSet")){
+                DataSet <- iterationDataSet
+            }
+            else if(exists("DataSet")){
+                DataSet <- join(DataSet, iterationDataSet, type="full", by = "ProbeID")
+            }
+        }
+    }
+    FinalDataSet <- DataSet
+    
+    #Grabs all the variable types you want
+    for (k in 1:length(variablesInterest)){
+        #This first statement adds the Probe id to the dataset so it can be joined with the annotation data
+        if (!exists("variableCols")){
+            variableCols <- FinalDataSet[,c(grep(variablesInterest[k],c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))]
+            variableCols <- cbind(FinalDataSet[,c(grep("ProbeID", c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))], variableCols)
+            colnames(variableCols)[1] <- "ProbeID"
+        }
+        #this only cbinds the next variable columns to the full Variable dataset
+        else if(exists("variableCols")){
+            variableColsNext <- FinalDataSet[,c(grep(variablesInterest[k], colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))]
+            variableCols <- cbind(variableCols, variableColsNext)
+        }
+    }
+    #Adds In the output types you want
+    for (t in 1:length(typeOfOutput)){
+        #initializes with probe id to join to the ILMN data and the first output type
+        if (!exists("newerOutput")){
+            newerOutput <- variableCols[,c(grep(typeOfOutput[t], c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))]
+            newerOutput <- cbind(variableCols[,c(grep("ProbeID", c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))],  newerOutput);
+            colnames(newerOutput)[1] <- "ILMN_ProbeID"
+            #return (newerOutput)
+        }
+        #only adds the next type of output
+        else if (exists("newerOutput")){
+            newerOutNext <- variableCols[,c(grep(typeOfOutput[t], c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))]
+            newerOutput <- cbind(newerOutput, newerOutNext)
+        }
+    }
+    
+    #joins the annotation and data together
+    finalIllumina <- join(illuminaProbeInfo, newerOutput, by = "ILMN_ProbeID", type = "right")
+    colnames(finalIllumina)[3] <- "SYMBOLREANNOTATED"
+    return (finalIllumina)
+}
 
+
+#run to add AFFY
+HiddenAffy <- function(AffyDataModel, geneList, datasets, brainRegion, variablesInterest, typeOfOutput){
+    #Grabs all data related to dataset input, brainRegion, and input genes, from each file
+    for (i in 1:length(AffyDataModel[,4])){
+        if ((AffyDataModel[i,4] %in% datasets) & (AffyDataModel[i,3] == "Affymetrix") & (AffyDataModel[i,2] %in% brainRegion)){ # taking out for now (AffyDataModel[i,4]=="Pritzker960") &
+            #initializes the dataset with genesymbol column and the first file 
+            file <- read.csv(file = toString(AffyDataModel[i,1]), stringsAsFactors = FALSE)
+            iterationDataSet<-file[as.character(file[,grep("SYMBOLREANNOTATED", colnames(file), ignore.case = TRUE, perl = T,value = F)]) %in% geneList,]
+            
+            #if already initialized, just reads next file rather than adding symbol column
+            if(!exists("DataSet")){
+                DataSet <- iterationDataSet
+            }
+            #joins the two datasets by id
+            else if(exists("DataSet")){
+                DataSet <- join(DataSet, iterationDataSet, type="full", by = "AffyID")
+            }
+        }
+    }
+    
+    FinalDataSet <- DataSet
+    
+    #pulls out each individual variable of interest and binds them together
+    for (k in 1:length(variablesInterest)){
+        #initializes the new data with ID and Symbol columns
+        if (!exists("variableCols")){
+            variableCols <- FinalDataSet[,c(grep(variablesInterest[k],c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))]
+            variableCols <- cbind(FinalDataSet[,c(grep("AffyID", colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))], variableCols)
+            variableCols <- cbind(FinalDataSet[,c(grep("SYMBOLREANNOTATED", colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))], variableCols)
+            colnames(variableCols)[grep("SYMBOLREANNOTATED", colnames(variableCols), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
+            colnames(variableCols)[grep("AffyID", colnames(variableCols), ignore.case = TRUE, perl = T, value = F)] <- "AffyID"
+            
+        }
+        #adds the next variable to the end of the dataset
+        else if(exists("variableCols")){
+            variableColsNext <- FinalDataSet[,c(grep(variablesInterest[k], colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))]
+            variableCols <- cbind(variableCols, variableColsNext)
+        }
+    }
+    
+    #Test Stuff #######
+    #return (variableCols)
+    #print(str(variableCols))
+    #variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)] <- as.character(variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)])
+    #print(variableCols)
+    
+    #separates the probeID, Gene symbol, and data columns.
+    newerOutputProbeID <- variableCols[,c(grep("AffyID", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
+    newerOutputSYMBOLS <- variableCols[,c(grep("SYMBOLREANNOTATED", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
+    #below pulls the output data you want and puts it into the final dataset with gene symbol and probe column
+    newerOutPutData <- variableCols[,unique(grep(paste(typeOfOutput,collapse="|"), colnames(variableCols), ignore.case = TRUE, value=F))]
+    
+    #Binds the probe id, gene symbol and data columns together
+    newerOutput <- cbind (newerOutputProbeID, newerOutputSYMBOLS, newerOutPutData)
+    colnames(newerOutput)[grep("newerOutputProbeID", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "AffyID"
+    colnames(newerOutput)[grep("newerOutputSYMBOLS", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
+    
+    newerOutput <- as.data.frame(newerOutput)
+    return (newerOutput)
+}
 #############################################3
 #Example Function usage:
 library(plyr)
@@ -30,8 +145,8 @@ test <- AffyAndIllumina(ILMNDataModel = ILMNDataSetModel, AFFYDataModel = AffyDa
 
 #################################################################
 #ABSOLUTELY REQUIRED DATA BELOW RUN BEFORE TRYING TO USE FUNCTION
+#make sure all data is within your working directory
 library(plyr)
-setwd("~/Documents/R Code/MakingAMetaQueryDatabase/thefunction")
 
 illuminaProbeInfo <- read.csv("IlluminaProbeInfo.csv", header = T)
 ILMNDataSetModel <- read.csv("DatasetModel.csv", header = T)
@@ -105,127 +220,12 @@ write.csv(TestOutputJoined, "TestOutputJoined.csv")
 
 
 #Calls to hiddenDataSet and hiddenAffy separate from the joined file
-testILMN <- HiddenDataSet(DataSetModel = ILMNDataSetModel, geneList = testgeneList, datasets = testdatasets, brainRegion = testBrainRegion, variablesInterest = testvariablesInterest, typeOfOutput = testtypeOfOutput)
+testILMN <- HiddenIllumina(DataSetModel = ILMNDataSetModel, geneList = testgeneList, datasets = testdatasets, brainRegion = testBrainRegion, variablesInterest = testvariablesInterest, typeOfOutput = testtypeOfOutput)
 testAFFY4 <- HiddenAffy(AffyDataModel = AffyDataSetModel, geneList = testgeneList, datasets = testdatasets, brainRegion = testBrainRegion, variablesInterest = testvariablesInterest, typeOfOutput = testtypeOfOutput)
 
 
 
-#run to add the function to your library
-HiddenDataSet <- function(DataSetModel, geneList, datasets, brainRegion, variablesInterest, typeOfOutput){
-    #iterates throught the dataset column of ILMNDataModel
-    #pulls out all data related to genes of interest, type of dataset, and brain region
-    for (i in 1:length(DataSetModel[,4])){
-        if ((DataSetModel[i,4] %in% datasets) & (DataSetModel[i,3] == "Illumina") & (DataSetModel[i,2] %in% brainRegion)){ # taking out for now (DataSetModel[i,4]=="Pritzker960") &
-            file <- read.csv(file = toString(DataSetModel[i,1]), stringsAsFactors = FALSE)
-            iterationDataSet<-file[as.character(file[,grep("SYMBOLREANNOTATED", colnames(file), ignore.case = TRUE, perl = T,value = F)]) %in% geneList,]
-            
-            if(!exists("DataSet")){
-                DataSet <- iterationDataSet
-            }
-            else if(exists("DataSet")){
-                DataSet <- join(DataSet, iterationDataSet, type="full", by = "ProbeID")
-            }
-        }
-    }
-    FinalDataSet <- DataSet
 
-    #Grabs all the variable types you want
-    for (k in 1:length(variablesInterest)){
-        #This first statement adds the Probe id to the dataset so it can be joined with the annotation data
-        if (!exists("variableCols")){
-            variableCols <- FinalDataSet[,c(grep(variablesInterest[k],c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))]
-            variableCols <- cbind(FinalDataSet[,c(grep("ProbeID", c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))], variableCols)
-            colnames(variableCols)[1] <- "ProbeID"
-        }
-        #this only cbinds the next variable columns to the full Variable dataset
-        else if(exists("variableCols")){
-            variableColsNext <- FinalDataSet[,c(grep(variablesInterest[k], colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))]
-            variableCols <- cbind(variableCols, variableColsNext)
-        }
-    }
-    #Adds In the output types you want
-    for (t in 1:length(typeOfOutput)){
-        #initializes with probe id to join to the ILMN data and the first output type
-        if (!exists("newerOutput")){
-            newerOutput <- variableCols[,c(grep(typeOfOutput[t], c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))]
-            newerOutput <- cbind(variableCols[,c(grep("ProbeID", c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))],  newerOutput);
-            colnames(newerOutput)[1] <- "ILMN_ProbeID"
-            #return (newerOutput)
-        }
-        #only adds the next type of output
-        else if (exists("newerOutput")){
-            newerOutNext <- variableCols[,c(grep(typeOfOutput[t], c(colnames(variableCols)), ignore.case = TRUE, perl = T, value = F))]
-            newerOutput <- cbind(newerOutput, newerOutNext)
-        }
-    }
-    
-    #joins the annotation and data together
-    finalIllumina <- join(illuminaProbeInfo, newerOutput, by = "ILMN_ProbeID", type = "right")
-    colnames(finalIllumina)[3] <- "SYMBOLREANNOTATED"
-    return (finalIllumina)
-}
-
-
-#run to add AFFY
-HiddenAffy <- function(AffyDataModel, geneList, datasets, brainRegion, variablesInterest, typeOfOutput){
-    #Grabs all data related to dataset input, brainRegion, and input genes, from each file
-    for (i in 1:length(AffyDataModel[,4])){
-        if ((AffyDataModel[i,4] %in% datasets) & (AffyDataModel[i,3] == "Affymetrix") & (AffyDataModel[i,2] %in% brainRegion)){ # taking out for now (AffyDataModel[i,4]=="Pritzker960") &
-            #initializes the dataset with genesymbol column and the first file 
-            file <- read.csv(file = toString(AffyDataModel[i,1]), stringsAsFactors = FALSE)
-            iterationDataSet<-file[as.character(file[,grep("SYMBOLREANNOTATED", colnames(file), ignore.case = TRUE, perl = T,value = F)]) %in% geneList,]
-            
-            #if already initialized, just reads next file rather than adding symbol column
-            if(!exists("DataSet")){
-                DataSet <- iterationDataSet
-            }
-            #joins the two datasets by id
-            else if(exists("DataSet")){
-                DataSet <- join(DataSet, iterationDataSet, type="full", by = "AffyID")
-            }
-        }
-    }
-
-    FinalDataSet <- DataSet
-    
-    #pulls out each individual variable of interest and binds them together
-    for (k in 1:length(variablesInterest)){
-        #initializes the new data with ID and Symbol columns
-        if (!exists("variableCols")){
-            variableCols <- FinalDataSet[,c(grep(variablesInterest[k],c(colnames(FinalDataSet)), ignore.case = TRUE, perl = T, value = F))]
-            variableCols <- cbind(FinalDataSet[,c(grep("AffyID", colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))], variableCols)
-            variableCols <- cbind(FinalDataSet[,c(grep("SYMBOLREANNOTATED", colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))], variableCols)
-            colnames(variableCols)[grep("SYMBOLREANNOTATED", colnames(variableCols), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
-            colnames(variableCols)[grep("AffyID", colnames(variableCols), ignore.case = TRUE, perl = T, value = F)] <- "AffyID"
-            
-        }
-        #adds the next variable to the end of the dataset
-        else if(exists("variableCols")){
-            variableColsNext <- FinalDataSet[,c(grep(variablesInterest[k], colnames(FinalDataSet), ignore.case = TRUE, perl = T, value = F))]
-            variableCols <- cbind(variableCols, variableColsNext)
-        }
-    }
-    
-    #Test Stuff #######
-    #return (variableCols)
-    #print(str(variableCols))
-    #variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)] <- as.character(variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)])
-    #print(variableCols)
-    
-    #separates the probeID, Gene symbol, and data columns.
-    newerOutputProbeID <- variableCols[,c(grep("AffyID", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
-    newerOutputSYMBOLS <- variableCols[,c(grep("SYMBOLREANNOTATED", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
-    #below pulls the output data you want and puts it into the final dataset with gene symbol and probe column
-    newerOutPutData <- variableCols[,unique(grep(paste(typeOfOutput,collapse="|"), colnames(variableCols), ignore.case = TRUE, value=F))]
-    
-    #Binds the probe id, gene symbol and data columns together
-    newerOutput <- cbind (newerOutputProbeID, newerOutputSYMBOLS, newerOutPutData)
-    colnames(newerOutput)[grep("newerOutputProbeID", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "AffyID"
-    colnames(newerOutput)[grep("newerOutputSYMBOLS", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
-    
-    newerOutput <- as.data.frame(newerOutput)
-    return (newerOutput)
-}
 
 #############
 #Code I found useful

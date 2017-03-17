@@ -1,0 +1,7 @@
+FileName,BrainRegion,Platform,DataSet,StatsModel
+DLPFC_Affymetrix_Affy6Region_ModelLM4.csv,DLPFC,Affymetrix,Affy6Region,ModelLM4
+HC_Affymetrix_Affy6Region_ModelLM4.csv,HC,Affymetrix,Affy6Region,ModelLM4
+NACC_Affymetrix_Affy6Region_ModelLM4.csv,NACC,Affymetrix,Affy6Region,ModelLM4
+AMY_Affymetrix_Affy6Region_ModelLM4.csv,AMY,Affymetrix,Affy6Region,ModelLM4
+ACG_Affymetrix_Affy6Region_ModelLM4.csv,ACG,Affymetrix,Affy6Region,ModelLM4
+CB_Affymetrix_Affy6Region_ModelLM4.csv,CB,Affymetrix,Affy6Region,ModelLM4
