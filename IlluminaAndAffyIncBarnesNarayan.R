@@ -126,24 +126,30 @@ HiddenAffy <- function(AffyDataModel, geneList, datasets, brainRegion, variables
             variableCols <- cbind(variableCols, variableColsNext)
         }
     }
-    
+    #return (variableCols)
     #Test Stuff #######
     #return (variableCols)
     #print(str(variableCols))
     #variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)] <- as.character(variableCols[,grep("SYMBOLREANNOTATED", colnames(variableCols), perl = T, value = F)])
     #print(variableCols)
-    
+    #return(variableCols)
     #separates the probeID, Gene symbol, and data columns.
     newerOutputProbeID <- variableCols[,c(grep("AffyID", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
     newerOutputSYMBOLS <- variableCols[,c(grep("SYMBOLREANNOTATED", colnames(variableCols), ignore.case = TRUE, perl = T, value = F))]
     #below pulls the output data you want and puts it into the final dataset with gene symbol and probe column
     newerOutPutData <- variableCols[,unique(grep(paste(typeOfOutput,collapse="|"), colnames(variableCols), ignore.case = TRUE, value=F))]
-    
+    #return (newerOutPutData)
     #Binds the probe id, gene symbol and data columns together
-    newerOutput <- cbind (newerOutputProbeID, newerOutputSYMBOLS, newerOutPutData)
+
+    newerOutput <-  data.frame(newerOutputProbeID, newerOutputSYMBOLS, newerOutPutData)
+    
+
     colnames(newerOutput)[grep("newerOutputProbeID", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "AffyID"
     colnames(newerOutput)[grep("newerOutputSYMBOLS", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
     
+    if(is.null(colnames(newerOutPutData))){
+        colnames(newerOutput)[3] <- colnames(variableCols[unique(grep(paste(typeOfOutput,collapse="|"), colnames(variableCols), ignore.case = TRUE, value=F))])
+    }
     newerOutput <- as.data.frame(newerOutput)
     return (newerOutput)
 }
@@ -201,7 +207,7 @@ BarnesNarayan <- function(AffyDataModel, geneList, datasets, brainRegion, variab
     newerOutPutData <- variableCols[,unique(grep(paste(typeOfOutput,collapse="|"), colnames(variableCols), ignore.case = TRUE, value=F))]
     
     #Binds the probe id, gene symbol and data columns together
-    newerOutput <- cbind (newerOutputEntrezID, newerOutputProbesetID, newerOutputSYMBOLS, newerOutPutData)
+    newerOutput <-  data.frame(newerOutputEntrezID, newerOutputProbesetID, newerOutputSYMBOLS, newerOutPutData)
     colnames(newerOutput)[grep("newerOutputProbesetID", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "ProbesetID"
     colnames(newerOutput)[grep("newerOutputEntrezID", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "EntrezID"
     colnames(newerOutput)[grep("newerOutputSYMBOLS", colnames(newerOutput), ignore.case = TRUE, perl = T, value = F)] <- "SYMBOLREANNOTATED"
