@@ -4,23 +4,52 @@ AffyDataSetModel <- read.csv("AffyDataSetModel.csv", header = T)
 
 testdatasets <- c("Pritzker960", "Freeze3", "LCM.AMY", "LCM.HC", "Affy6Region")
 testtypeOfOutput <- c("Tstat")
-allVariables <- c("MDD", "Age", "Gender", "BP", "SCHIZ")
+allVariables <- c("MDD", "Age", "Gender", "BP", "SCHIZ", "PMI")
 allRegions <- c("DLPFC", "HC", "NACC", "ACG", "CB", "AMY")
 dir.create("corrFolder")
+dir.create("TstatAverages")
+i = 1
+j = 1
 for (i in 1:length(allRegions)){
     for (j in 1:length(allVariables)){
         test <- AffyAndIllumina(ILMNDataModel = ILMNDataSetModel, AFFYDataModel = AffyDataSetModel, genesOfInterest = genes, DataSets = testdatasets, BrainRegion = toString(allRegions[i]), variablesofInterest = toString(allVariables[j]), OutputsInterest = testtypeOfOutput)
         data <- test[3]
         data <- as.data.frame(data)
+        
         tStatCols <- data[,grep("Tstat", colnames(data), perl = T, ignore.case = T, value = F)]
-        tStatCorMatrix <- cor(tStatCols, use = "pairwise.complete.obs")
+        tStatColAvg <- data.frame(apply(tStatCols, 1, function(y) mean(y,  na.rm = T)))
+        colnames(tStatColAvg)[1] <- "AverageTstat"
+        tStatOut<- data.frame(data[ , grep("SYMBOLREANNOTATED", colnames(data), perl = T, value = F)], tStatCols, tStatColAvg)
+        colnames(tStatOut)[grep("SYMBOLREANNOTATED", colnames(tStatOut), perl = T, value = F)] <- "SYMBOLREANNOTATED"
+        
+        
+        tStatCorMatrix <- cor(tStatCols, use = "complete.obs")
         title <- c(toString(allRegions[i]), toString(allVariables[j]), "corr.csv")
+        titleAvg <- c(toString(allRegions[i]), toString(allVariables[j]), "AvgTstat.csv")
+        
         setwd("corrFolder")
         write.csv(tStatCorMatrix, toString(title))
         setwd("..")
+        setwd("TstatAverages")
+        write.csv(tStatOut, toString(titleAvg))
+        setwd("..")
     }
 }
-
+#correlate all regions to one variable
+dir.create("allRegionsOneVarCor")
+i<-2
+for (i in 1:length(allVariables)){
+    temp <- AffyAndIllumina(ILMNDataModel = ILMNDataSetModel, AFFYDataModel = AffyDataSetModel, genesOfInterest = genes, DataSets = testdatasets, BrainRegion = allRegions, variablesofInterest = toString(allVariables[i]), OutputsInterest = testtypeOfOutput)
+    data <- data.frame(temp[3])
+    
+    tStatCols <- data[,grep("Tstat", colnames(data), perl = T, ignore.case = T, value = F)]
+    tStatCorMatrix <- cor(tStatCols, use = "complete.obs")
+    title <- c(toString(allVariables[i]),"allRegions_corr.csv")
+    
+    setwd("allRegionsOneVarCor")
+    write.csv(tStatCorMatrix, toString(title))
+    setwd("..")
+}
 library(plyr)
 
 #Hippocampal age correlation
