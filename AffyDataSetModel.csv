@@ -5,3 +5,5 @@ NACC_Affymetrix_Affy6Region_ModelLM4.csv,NACC,Affymetrix,Affy6Region,ModelLM4
 AMY_Affymetrix_Affy6Region_ModelLM4.csv,AMY,Affymetrix,Affy6Region,ModelLM4
 ACG_Affymetrix_Affy6Region_ModelLM4.csv,ACG,Affymetrix,Affy6Region,ModelLM4
 CB_Affymetrix_Affy6Region_ModelLM4.csv,CB,Affymetrix,Affy6Region,ModelLM4
+Affymetrix_Barnes_GSE21935_TemporalCortex-final.csv,TemporalCortex,Affymetrix,Barnes,GSE21935
+Affymetrix_Narayan__GSE21138_DLPFC_reformated.csv,DLPFC,Affymetrix,Narayan,GSE21138
